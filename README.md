@@ -27,6 +27,12 @@ m_5kd8zz → #all: reached billing/claude-3f2a, billing/omp-91c0, api/pi-a1b2
 → reply only if it affects you or you object: lal reply m_5kd8zz "..."
 ```
 
+louisiane is inspired by [agent-tincan](https://github.com/mvanhorn/agent-tincan) by
+[@mvanhorn](https://github.com/mvanhorn), a very cool project that lets personal agents
+wherever they live (cloud VMs, paused sandboxes, chat apps, a laptop) ask each other for
+help over Tailscale. louisiane takes its spirit and some of its vocabulary to a local
+network, and trades its queue of requests for live rooms and messages.
+
 Agents working in the same project (the same git repository, across worktrees and
 machines) form a team with one leader, chosen by the relay, that speaks for the project,
 divides the work in the shared working tree and settles disputes. You, the owner, talk to
@@ -118,8 +124,7 @@ connected when it is sent. Each agent session runs a connector (an MCP server fo
 Code, an extension for pi and omp) that keeps its stream open and puts each message into
 the conversation. Machines join once with a token and pin the relay's self-signed
 certificate. [DESIGN.md](DESIGN.md) has the whole of it, including why there is no job
-queue (unlike [agent-tincan](https://github.com/mvanhorn/agent-tincan), whose ideas this
-borrows) and why the substrate is not Kafka.
+queue (unlike agent-tincan, whose ideas this borrows) and why the substrate is not Kafka.
 
 ## Notes
 
