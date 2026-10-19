@@ -73,7 +73,8 @@ self-signed certificate; its fingerprint is the pin `lal relay init` printed.
 
 ## Upgrading
 
-Install the new binary (`install.sh` again, or copy it to `/usr/local/bin/lal`) and
+Install the new binary (`install.sh` again, or `install -m 0755 lal /usr/local/bin/lal`;
+copying over the running binary fails with "Text file busy") and
 `systemctl restart louisiane-relay`. Connectors reconnect within seconds, and their agents
 are told messages may have been missed meanwhile. Update `lal` on each machine too; running
 sessions pick it up when they restart.
