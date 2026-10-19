@@ -1,0 +1,6 @@
+louisiane is MIT licensed (LICENSE). It includes:
+
+- internal/grid, from spoond (https://github.com/jrimmer/spoond), BSD 3-Clause:
+  internal/grid/LICENSE.
+- Datastar with Rocket (MIT), WebTUI CSS (MIT) and JetBrains Mono (SIL OFL 1.1),
+  vendored under internal/dash/static with their licences beside them.

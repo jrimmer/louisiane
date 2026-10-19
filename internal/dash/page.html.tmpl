@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>louisiane · {{.View}}</title>
+<link rel="stylesheet" href="/static/vendor/webtui/full.css">
+<link rel="stylesheet" href="/static/css/grid.css">
+<link rel="stylesheet" href="/static/fonts/jetbrains-mono.css">
+<style>
+:root {
+  --bg: #0c0c0d;
+  --fg: #c9c9c9;
+  --dim: #6b6b6b;
+  --frame: #3a3a40;
+  --title: #6FD8E8;
+  --ok: #6EF59A;
+  --warn: #FFC46B;
+  --bad: #FF7A85;
+  --state: #86A9FF;
+  --spark: #6FD8E8;
+  --link: #86A9FF;
+  --owner: #B09AFF;
+  --head: #f2f2f2;
+}
+html, body { scrollbar-width: none; }
+html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+/* IRC-style nick colours, and the owner's own voice. */
+.g-n1 { color: #6FD8E8; } .g-n2 { color: #B09AFF; } .g-n3 { color: #6EF59A; }
+.g-n4 { color: #86A9FF; } .g-n5 { color: #FF9E7A; } .g-n6 { color: #E8D36F; }
+.g-me { color: var(--warn); font-weight: 700; }
+/* Grid cells that act: tabs, channels and links navigate; ids start a reply. */
+[data-id^="go:"], [data-id^="reply:"] { cursor: pointer; }
+[data-id^="go:"]:hover, [data-id^="reply:"]:hover { text-decoration: underline; color: #fff; }
+/* The input line, drawn to sit under the grid as one more row of it. */
+.say { display: flex; gap: 1ch; width: 104ch; margin: .25rem 0 0; font: 13px/1.15 "JetBrains Mono", ui-monospace, monospace; }
+.say .prompt { color: var(--warn); white-space: pre; }
+.say input { flex: 1; background: transparent; color: var(--head); border: none; border-bottom: 1px solid var(--frame);
+  font: inherit; padding: 0; outline: none; caret-color: var(--warn); }
+.sayres { width: 104ch; font: 13px/1.15 "JetBrains Mono", ui-monospace, monospace; color: var(--dim); min-height: 1.2em; white-space: pre-wrap; }
+.sayres.bad { color: var(--bad); }
+</style>
+<script type="module" src="/static/vendor/datastar-rocket.js"></script>
+</head>
+<body data-webtui-theme="dark" data-init="@get('{{.StreamURL}}')">
+<main>
+<pre id="grid" class="grid" data-webtui-theme="dark">{{.Grid}}</pre>
+{{if eq .View "chat"}}{{if .CanSend}}
+<form class="say" id="say" autocomplete="off">
+  <span class="prompt">{{if eq .Room "*"}}[everything]{{else if eq .Room "direct"}}[direct]{{else}}[#{{.Room}}]{{end}} owner›</span>
+  <input id="line" name="line" autofocus spellcheck="false" aria-label="message">
+</form>
+<div class="sayres" id="sayres"></div>
+{{end}}{{end}}
+</main>
+<script>
+const ROOM = {{.Room}};
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-id]');
+  if (!el) return;
+  const id = el.dataset.id;
+  if (id.startsWith('go:')) { location.href = id.slice(3); }
+  else if (id.startsWith('reply:')) {
+    const line = document.getElementById('line');
+    if (line) { line.value = '/reply ' + id.slice(6) + ' '; line.focus(); }
+  }
+});
+{{if eq .View "chat"}}
+// Keep the newest lines in view, unless the reader has scrolled up.
+let pinned = true;
+const bottom = () => window.scrollTo(0, document.body.scrollHeight);
+window.addEventListener('scroll', () => { pinned = window.innerHeight + window.scrollY >= document.body.scrollHeight - 40; });
+new MutationObserver(() => { if (pinned) bottom(); }).observe(document.getElementById('grid'), {childList: true, subtree: true, characterData: true});
+bottom();
+const form = document.getElementById('say');
+if (form) form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('line'), out = document.getElementById('sayres');
+  const text = input.value.trim();
+  if (!text) return;
+  const say = (msg, bad) => { out.textContent = msg; out.className = 'sayres' + (bad ? ' bad' : ''); };
+  // IRC-style commands; plain text goes to the channel on screen.
+  let req, m;
+  const here = () => (ROOM === '*' || ROOM === 'direct') ? null : '#' + ROOM;
+  if ((m = text.match(/^\/(?:j|join)\s+#?(\S+)$/))) { location.href = '/chat?room=' + encodeURIComponent(m[1]); return; }
+  else if ((m = text.match(/^\/(?:msg|m)\s+(\S+)\s+([\s\S]+)$/))) req = {to: m[1], body: m[2]};
+  else if ((m = text.match(/^\/(?:q|query)\s+(\S+)\s+([\s\S]+)$/))) req = {to: m[1], body: m[2], ask: true};
+  else if ((m = text.match(/^\/ask\s+([\s\S]+)$/))) req = {to: here(), body: m[1], ask: true};
+  else if ((m = text.match(/^\/(?:reply|r)\s+(m_\S+)\s+([\s\S]+)$/))) req = {reply_to: m[1], body: m[2]};
+  else if ((m = text.match(/^\/(?:rreply|rr)\s+(m_\S+)\s+([\s\S]+)$/))) req = {reply_to: m[1], body: m[2], in_room: true};
+  else if (text.startsWith('/')) {
+    say('commands: text (to this channel) · /msg ADDR text · /ask question · /q ADDR question · /reply ID text · /rreply ID text (in its room) · /join #room', !text.startsWith('/help'));
+    return;
+  } else req = {to: here(), body: text};
+  if (req.to === null) { say('pick a channel above, or use /msg ADDR text', true); return; }
+  const res = await fetch('/owner/send', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(req)});
+  const j = await res.json().catch(() => ({}));
+  if (res.ok) { input.value = ''; say(j.id + ' reached ' + (j.delivered || []).join(', ')); }
+  else say(j.error || res.statusText, true);
+});
+{{end}}
+</script>
+</body>
+</html>
