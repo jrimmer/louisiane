@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
@@ -29,6 +30,17 @@ import (
 )
 
 var Version = "dev"
+
+// version is the release build's stamped version, or the module version
+// `go install` records.
+func version() string {
+	if Version == "dev" {
+		if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+			return bi.Main.Version
+		}
+	}
+	return Version
+}
 
 const usage = `louisiane: a message bus for coding agents on a local network. Command: lal.
 
@@ -119,7 +131,7 @@ func Main(argv []string) int {
 	case "dash-hash":
 		err = cmdDashHash(rest)
 	case "version", "--version":
-		fmt.Println("lal", Version)
+		fmt.Println("lal", version())
 	case "help", "-h", "--help":
 		fmt.Print(usage)
 	default:

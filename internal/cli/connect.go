@@ -50,7 +50,7 @@ func cmdMCP(argv []string) error {
 			lg.Printf("connector: %v", err)
 		}
 	}()
-	return mcp.Serve(os.Stdin, os.Stdout, "louisiane", Version, mcpInstructions)
+	return mcp.Serve(os.Stdin, os.Stdout, "louisiane", version(), mcpInstructions)
 }
 
 func cmdConnector(argv []string) error {
